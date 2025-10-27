@@ -239,15 +239,15 @@
       }
 
       #d1 {
-        --scale: .72;
+        --scale: .72
       }
 
       #d2 {
-        --scale: .72;
+        --scale: .72
       }
 
       #d3 {
-        --scale: .72;
+        --scale: .72
       }
 
       #d4 {
@@ -304,15 +304,15 @@
       }
 
       #d1 {
-        --scale: .72;
+        --scale: .72
       }
 
       #d2 {
-        --scale: .72;
+        --scale: .72
       }
 
       #d3 {
-        --scale: .72;
+        --scale: .72
       }
 
       #d4 {
@@ -357,16 +357,16 @@
       }
     }
 
-    @media (max-width: 340px) {
-
-    }
-
     @media (max-width:480px) {
       .digit {
         font-size: 40px;
       }
 
-      #d0,#d1,#d2,#d3,#d4 {
+      #d0,
+      #d1,
+      #d2,
+      #d3,
+      #d4 {
         --top: 46%;
       }
     }
@@ -485,7 +485,7 @@
 
   <!-- Stage -->
   <div class="stage">
-    <div class="frame">
+    <div class="frame" role="img" aria-label="DEARMC lottery live board with five reels and timing banners">
       <img src="dearmc6.png" alt="DEAR Lottery Frame" />
 
       <!-- Banners -->
@@ -515,7 +515,8 @@
     </div>
 
     <div class="download-bar">
-      <button class="btn-download" id="downloadBtn" type="button">⬇️ Download Result Image</button>
+      <button class="btn-download" id="downloadBtn" type="button" aria-label="Download result image">⬇️ Download Result
+        Image</button>
     </div>
   </div>
 
@@ -554,10 +555,17 @@
     const TIMEZONE = "Asia/Kolkata";
     const SPIN_WINDOW_MS = 5 * 60 * 1000;
     const SLOTS = ['10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM'];
+
     const pad2 = n => String(n).padStart(2, '0');
     const nowIST = () => new Date(new Date().toLocaleString("en-US", { timeZone: TIMEZONE }));
     const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
     const fmtDateHuman = d => new Intl.DateTimeFormat('en-IN', { timeZone: TIMEZONE, day: '2-digit', month: 'short', year: 'numeric' }).format(d);
+    const sameDayIST = (a, b) => {
+      const ia = new Date(a.toLocaleString("en-US", { timeZone: TIMEZONE }));
+      const ib = new Date(b.toLocaleString("en-US", { timeZone: TIMEZONE }));
+      return ia.getFullYear() === ib.getFullYear() && ia.getMonth() === ib.getMonth() && ia.getDate() === ib.getDate();
+    };
+
     function parseSlotOn(dateYMD, label) {
       const m = /(\d{1,2}):(\d{2})\s*([AP]M)/i.exec(label); if (!m) return new Date();
       let [_, hh, mm, ap] = m; let H = (parseInt(hh, 10) % 12) + (ap.toUpperCase() === 'PM' ? 12 : 0);
@@ -573,7 +581,8 @@
         const prev = prevCandidates.length ? prevCandidates.at(-1)
           : (() => {
             const yst = new Date(now); yst.setDate(now.getDate() - 1);
-            const ymdY = ymd(yst); return { label: SLOTS.at(-1), time: parseSlotOn(ymdY, SLOTS.at(-1)), date: ymdY };
+            const ymdY = ymd(yst);
+            return { label: SLOTS.at(-1), time: parseSlotOn(ymdY, SLOTS.at(-1)), date: ymdY };
           })();
         return { next, prev };
       }
@@ -582,7 +591,11 @@
       const prev = { label: SLOTS.at(-1), time: parseSlotOn(today, SLOTS.at(-1)), date: today };
       return { next, prev };
     }
-    const msToHMS = (ms) => { if (ms < 0) ms = 0; const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000), s = Math.floor((ms % 60000) / 1000); return `${pad2(h)}:${pad2(m)}:${pad2(s)}`; };
+    const msToHMS = (ms) => {
+      if (ms < 0) ms = 0;
+      const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000), s = Math.floor((ms % 60000) / 1000);
+      return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
+    };
     const periodFromLabel = (label) => {
       const m = /(\d{1,2}):(\d{2})\s*([AP]M)/i.exec(label); if (!m) return "AFTERNOON";
       let [_, hh, mm, ap] = m; let H = (parseInt(hh, 10) % 12) + (ap.toUpperCase() === 'PM' ? 12 : 0);
@@ -609,8 +622,14 @@
     /* Reels */
     let spinTimers = [null, null, null, null, null];
     let isSpinning = [false, false, false, false, false];
-    const setDigit = (i, val, flare = false) => { digits[i].textContent = String(val); if (flare) { digits[i].classList.add('flash'); setTimeout(() => digits[i].classList.remove('flash'), 260); } };
-    const setAllTo = (result, flare = false) => { const s = (result || "00000").padStart(5, '0').slice(0, 5); for (let i = 0; i < 5; i++) setDigit(i, s[i], flare); };
+    const setDigit = (i, val, flare = false) => {
+      digits[i].textContent = String(val);
+      if (flare) { digits[i].classList.add('flash'); setTimeout(() => digits[i].classList.remove('flash'), 260); }
+    };
+    const setAllTo = (result, flare = false) => {
+      const s = (result || "00000").padStart(5, '0').slice(0, 5);
+      for (let i = 0; i < 5; i++) setDigit(i, s[i], flare);
+    };
     function startReel(i, period) {
       if (isSpinning[i]) return;
       isSpinning[i] = true; digits[i].classList.add('spinning');
@@ -626,15 +645,24 @@
       }, delay);
     }
     const startAllReels = () => { const speeds = [72, 86, 99, 113, 127]; for (let i = 0; i < 5; i++) startReel(i, speeds[i]); };
-    const stopAllReelsWith = (result) => { const s = (result || "00000").padStart(5, '0'); for (let i = 0; i < 5; i++) stopReelTo(i, s[i], i * 160); };
+    const stopAllReelsWith = (result) => {
+      const s = (result || "00000").padStart(5, '0');
+      for (let i = 0; i < 5; i++) stopReelTo(i, s[i], i * 160);
+    };
 
     /* Firebase listeners & scheduler */
     let unsubscribePrev = null, unsubscribeNext = null;
     let prevOfficial = null, nextOfficial = null, schedule = null, tickHandle = null;
 
     function listenPrev() {
+      // Only listen to PREV if it is the same IST day as NOW — prevents yesterday's result from showing today
       if (unsubscribePrev) { unsubscribePrev(); unsubscribePrev = null; }
       prevOfficial = null;
+      const now = nowIST();
+      if (!sameDayIST(schedule.prev.time, now)) {
+        // Not today's prev → do not subscribe; ensure digits won't show it while waiting
+        return;
+      }
       const path = `lottery/${schedule.prev.date}/${schedule.prev.label}/result`;
       unsubscribePrev = onValue(ref(db, path), snap => {
         if (snap.exists()) prevOfficial = String(snap.val()).replace(/\D/g, '').padStart(5, '0').slice(0, 5);
@@ -652,11 +680,14 @@
     function setupSchedule() {
       schedule = nextAndPrevSlots(nowIST());
       drawDateEl.textContent = fmtDateHuman(schedule.next.time);
-      // show previous slot in chips while waiting
+
+      // Show chips based on previous label (as before)
       drawTimeEl.textContent = schedule.prev.label;
       drawTimeLeftEl.textContent = schedule.prev.label;
+
       refreshBannersFromDrawText(schedule);
-      listenPrev(); listenNext();
+      listenPrev();  // now guarded by same-day check
+      listenNext();
     }
 
     function loop() {
@@ -665,18 +696,27 @@
       const inWaiting = now < spinStart;
       const inSpin = now >= spinStart && now < schedule.next.time;
 
+      const prevIsToday = sameDayIST(schedule.prev.time, now);
+
       if (inWaiting) {
         countdownEl.textContent = `Next Draw: ${msToHMS(schedule.next.time - now)}`;
         drawTimeEl.textContent = schedule.prev.label;
         drawTimeLeftEl.textContent = schedule.prev.label;
-        if (prevOfficial && !isSpinning.some(Boolean)) setAllTo(prevOfficial);
+
+        // Only show prevOfficial if it's from TODAY; otherwise show zeros
+        if (!isSpinning.some(Boolean)) {
+          if (prevIsToday && prevOfficial) setAllTo(prevOfficial);
+          else setAllTo("00000");
+        }
         refreshBannersFromDrawText(schedule);
+
       } else if (inSpin) {
         countdownEl.textContent = `Next Draw: ${msToHMS(schedule.next.time - now)}`;
         drawTimeEl.textContent = schedule.prev.label;
         drawTimeLeftEl.textContent = schedule.prev.label;
         if (!isSpinning.some(Boolean)) startAllReels();
         refreshBannersFromDrawText(schedule);
+
       } else {
         countdownEl.textContent = `Result Time`;
         drawTimeEl.textContent = schedule.next.label;
@@ -686,6 +726,9 @@
           if (nextOfficial) stopAllReelsWith(nextOfficial);
         } else if (nextOfficial) {
           setAllTo(nextOfficial);
+        } else {
+          // No official yet: keep zeros after crossing the boundary to today
+          if (!prevIsToday) setAllTo("00000");
         }
 
         refreshBannersFromDrawText(schedule);
