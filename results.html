@@ -515,8 +515,9 @@
     </div>
 
     <div class="download-bar">
-      <button class="btn-download" id="downloadBtn" type="button" aria-label="Download result image">⬇️ Download Result
-        Image</button>
+      <button class="btn-download" id="downloadBtn" type="button" aria-label="Download result image">
+        ⬇️ Download Result Image
+      </button>
     </div>
   </div>
 
@@ -578,12 +579,11 @@
       if (futureToday.length) {
         const next = futureToday[0];
         const prevCandidates = todaySlots.filter(s => s.time <= now);
-        const prev = prevCandidates.length ? prevCandidates.at(-1)
-          : (() => {
-            const yst = new Date(now); yst.setDate(now.getDate() - 1);
-            const ymdY = ymd(yst);
-            return { label: SLOTS.at(-1), time: parseSlotOn(ymdY, SLOTS.at(-1)), date: ymdY };
-          })();
+        const prev = prevCandidates.length ? prevCandidates.at(-1) : (() => {
+          const yst = new Date(now); yst.setDate(now.getDate() - 1);
+          const ymdY = ymd(yst);
+          return { label: SLOTS.at(-1), time: parseSlotOn(ymdY, SLOTS.at(-1)), date: ymdY };
+        })();
         return { next, prev };
       }
       const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
@@ -608,6 +608,12 @@
     };
     function refreshBannersFromDrawText(scheduleRef) {
       const label = drawTimeEl.textContent.trim();
+      if (label === "--") {
+        // Simplified banners for placeholder state
+        liveEl.textContent = `DEAR LIVE`;
+        weeklyEl.textContent = `DEAR WEEKLY LOTTERY`;
+        return;
+      }
       const period = periodFromLabel(label);
       const weekday = weekdayForLabel(label, scheduleRef);
       const short = (() => {
@@ -622,6 +628,7 @@
     /* Reels */
     let spinTimers = [null, null, null, null, null];
     let isSpinning = [false, false, false, false, false];
+
     const setDigit = (i, val, flare = false) => {
       digits[i].textContent = String(val);
       if (flare) { digits[i].classList.add('flash'); setTimeout(() => digits[i].classList.remove('flash'), 260); }
@@ -649,20 +656,23 @@
       const s = (result || "00000").padStart(5, '0');
       for (let i = 0; i < 5; i++) stopReelTo(i, s[i], i * 160);
     };
+    const stopAllReelsImmediately = () => {
+      for (let i = 0; i < 5; i++) {
+        clearInterval(spinTimers[i]); isSpinning[i] = false;
+        digits[i].classList.remove('spinning');
+      }
+    };
 
     /* Firebase listeners & scheduler */
     let unsubscribePrev = null, unsubscribeNext = null;
     let prevOfficial = null, nextOfficial = null, schedule = null, tickHandle = null;
 
     function listenPrev() {
-      // Only listen to PREV if it is the same IST day as NOW — prevents yesterday's result from showing today
       if (unsubscribePrev) { unsubscribePrev(); unsubscribePrev = null; }
       prevOfficial = null;
       const now = nowIST();
-      if (!sameDayIST(schedule.prev.time, now)) {
-        // Not today's prev → do not subscribe; ensure digits won't show it while waiting
-        return;
-      }
+      // Only listen to PREV if it is the same IST day as NOW — prevents yesterday's result from showing today
+      if (!sameDayIST(schedule.prev.time, now)) return;
       const path = `lottery/${schedule.prev.date}/${schedule.prev.label}/result`;
       unsubscribePrev = onValue(ref(db, path), snap => {
         if (snap.exists()) prevOfficial = String(snap.val()).replace(/\D/g, '').padStart(5, '0').slice(0, 5);
@@ -679,23 +689,46 @@
 
     function setupSchedule() {
       schedule = nextAndPrevSlots(nowIST());
-      drawDateEl.textContent = fmtDateHuman(schedule.next.time);
 
-      // Show chips based on previous label (as before)
+      // We fill the chips from JS each loop; set initial sane defaults here
+      drawDateEl.textContent = fmtDateHuman(schedule.next.time);
       drawTimeEl.textContent = schedule.prev.label;
       drawTimeLeftEl.textContent = schedule.prev.label;
 
       refreshBannersFromDrawText(schedule);
-      listenPrev();  // now guarded by same-day check
+      listenPrev();
       listenNext();
+    }
+
+    /* === Day End handling ===
+       Day is considered ended when the next scheduled slot is NOT on the same IST date as now.
+       In that case: digits -> 00000, date/time chips -> "--", countdown -> "--:--:--", simplified banners.
+    */
+    const isDayEnded = (now, scheduleObj) => !sameDayIST(scheduleObj.next.time, now);
+
+    function applyDayEndedUI() {
+      stopAllReelsImmediately();
+      setAllTo("00000");
+      drawDateEl.textContent = "--";
+      drawTimeEl.textContent = "--";
+      drawTimeLeftEl.textContent = "--";
+      countdownEl.textContent = "--:--:--";
+      refreshBannersFromDrawText(schedule);
     }
 
     function loop() {
       const now = nowIST();
+
+      // 1) If day ended (i.e., next slot belongs to tomorrow), show placeholders
+      if (isDayEnded(now, schedule)) {
+        applyDayEndedUI();
+        return; // nothing else for the rest of the day
+      }
+
+      // 2) Normal daily flow
       const spinStart = new Date(schedule.next.time.getTime() - SPIN_WINDOW_MS);
       const inWaiting = now < spinStart;
       const inSpin = now >= spinStart && now < schedule.next.time;
-
       const prevIsToday = sameDayIST(schedule.prev.time, now);
 
       if (inWaiting) {
@@ -703,21 +736,24 @@
         drawTimeEl.textContent = schedule.prev.label;
         drawTimeLeftEl.textContent = schedule.prev.label;
 
-        // Only show prevOfficial if it's from TODAY; otherwise show zeros
         if (!isSpinning.some(Boolean)) {
           if (prevIsToday && prevOfficial) setAllTo(prevOfficial);
           else setAllTo("00000");
         }
+        drawDateEl.textContent = fmtDateHuman(schedule.next.time);
         refreshBannersFromDrawText(schedule);
 
       } else if (inSpin) {
         countdownEl.textContent = `Next Draw: ${msToHMS(schedule.next.time - now)}`;
         drawTimeEl.textContent = schedule.prev.label;
         drawTimeLeftEl.textContent = schedule.prev.label;
+
         if (!isSpinning.some(Boolean)) startAllReels();
+        drawDateEl.textContent = fmtDateHuman(schedule.next.time);
         refreshBannersFromDrawText(schedule);
 
       } else {
+        // at/after result time
         countdownEl.textContent = `Result Time`;
         drawTimeEl.textContent = schedule.next.label;
         drawTimeLeftEl.textContent = schedule.next.label;
@@ -727,17 +763,20 @@
         } else if (nextOfficial) {
           setAllTo(nextOfficial);
         } else {
-          // No official yet: keep zeros after crossing the boundary to today
           if (!prevIsToday) setAllTo("00000");
         }
 
+        drawDateEl.textContent = fmtDateHuman(schedule.next.time);
         refreshBannersFromDrawText(schedule);
 
         // after ~2 minutes post result, roll to the next schedule
-        if (now - schedule.next.time > 120000) setupSchedule();
+        if (now - schedule.next.time > 120000) {
+          setupSchedule();
+        }
       }
     }
 
+    // Boot
     setAllTo("00000");
     setupSchedule();
     if (tickHandle) clearInterval(tickHandle);
@@ -751,7 +790,7 @@
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `dearmc-result-${new Date().toISOString().slice(0, 10)}-${drawTimeEl.textContent.trim().replace(/\s+/g, '')}.png`;
+          a.download = `dearmc-result-${new Date().toISOString().slice(0, 10)}-${drawTimeEl.textContent.trim().replace(/\s+/g, '') || 'NA'}.png`;
           document.body.appendChild(a); a.click(); document.body.removeChild(a);
           URL.revokeObjectURL(url);
         }, 'image/png');
