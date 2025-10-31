@@ -312,6 +312,13 @@
       cursor: pointer;
       color: #333;
     }
+
+    .date-label {
+      text-align: center;
+      font-weight: 700;
+      font-size: clamp(16px, 2.2vh, 20px);
+      color: #333;
+    }
   </style>
 </head>
 
@@ -336,6 +343,8 @@
     <h1>DEAR MC</h1>
   </header>
 
+  <div class="date-label" id="date-label"></div>
+
   <div class="label-bar">
     <div>MC NUMBER</div>
     <div>RESULT</div>
@@ -345,6 +354,17 @@
     <div class="card-column" id="machine-column"></div>
     <div class="card-column1" id="result-column"></div>
   </div>
+
+
+  <script>
+    // Auto-set date label to today's date (dd/mm/yyyy)
+    const dateLabel = document.getElementById("date-label");
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    dateLabel.textContent = `${dd}/${mm}/${yyyy}`;
+  </script>
 </body>
 
 </html>
