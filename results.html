@@ -560,7 +560,6 @@
     /* Time helpers */
     const TIMEZONE = "Asia/Kolkata";
     const SPIN_WINDOW_MS = 5 * 60 * 1000;
-    // fixed times (your original ones)
     const SLOTS = ['10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM'];
 
     const pad2 = n => String(n).padStart(2, '0');
@@ -594,7 +593,7 @@
         })();
         return { next, prev };
       }
-      // no more draws today → next is tomorrow 1st slot
+      // no more draws today → next is tomorrow 10:00 AM; prev is today's last
       const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
       const next = { label: SLOTS[0], time: parseSlotOn(ymd(tomorrow), SLOTS[0]), date: ymd(tomorrow) };
       const prev = { label: SLOTS.at(-1), time: parseSlotOn(today, SLOTS.at(-1)), date: today };
@@ -609,7 +608,7 @@
 
     const periodFromLabel = (label) => {
       const m = /(\d{1,2}):(\d{2})\s*([AP]M)/i.exec(label); if (!m) return "AFTERNOON";
-      let [, hh, mm, ap] = m; let H = (parseInt(hh, 10) % 12) + (ap.toUpperCase() === 'PM' ? 12 : 0);
+      let [, hh, , ap] = m; let H = (parseInt(hh, 10) % 12) + (ap.toUpperCase() === 'PM' ? 12 : 0);
       if (H < 12) return "MORNING"; if (H < 17) return "AFTERNOON"; return "EVENING";
     };
 
@@ -641,7 +640,6 @@
     let spinTimers = [null, null, null, null, null];
     let isSpinning = [false, false, false, false, false];
 
-    // instead of 00000 fallback → use -----
     const setDigit = (i, val, flare = false) => {
       digits[i].textContent = String(val);
       if (flare) { digits[i].classList.add('flash'); setTimeout(() => digits[i].classList.remove('flash'), 260); }
@@ -650,7 +648,6 @@
       const s = (result || "-----").toString().padStart(5, '-').slice(0, 5);
       for (let i = 0; i < 5; i++) setDigit(i, s[i], flare);
     };
-    // explicit dashes helper
     const setAllToDashes = () => setAllTo("-----", false);
 
     function startReel(i, period) {
@@ -690,8 +687,7 @@
       if (unsubscribePrev) { unsubscribePrev(); unsubscribePrev = null; }
       prevOfficial = null;
       const now = nowIST();
-      // Only listen to PREV if it is the same IST day as NOW
-      if (!sameDayIST(schedule.prev.time, now)) return;
+      if (!sameDayIST(schedule.prev.time, now)) return; // only if prev is today
       const path = `lottery/${schedule.prev.date}/${schedule.prev.label}/result`;
       unsubscribePrev = onValue(ref(db, path), snap => {
         if (snap.exists()) prevOfficial = String(snap.val()).replace(/\D/g, '').padStart(5, '0').slice(0, 5);
@@ -708,67 +704,58 @@
 
     function setupSchedule() {
       schedule = nextAndPrevSlots(nowIST());
-
       drawDateEl.textContent = fmtDateHuman(schedule.next.time);
-      // show previous label by default
-      drawTimeEl.textContent = schedule.prev.label;
+      drawTimeEl.textContent = schedule.prev.label;   // default show previous label
       drawTimeLeftEl.textContent = schedule.prev.label;
-
       refreshBannersFromDrawText(schedule);
       listenPrev();
       listenNext();
     }
 
     /* === Day / midnight handling === */
+    const isMidnightIST = (d) => d.getHours() === 0 && d.getMinutes() === 0;
 
-    // we want to wipe ONLY at 00:00 IST and start fresh
-    function isMidnightIST(d) {
-      return d.getHours() === 0 && d.getMinutes() === 0;
-    }
-
-    // for safety if tick misses exact 00:00, we can check "is it a new day compared to schedule.prev.time"
+    // safety: if tick missed 00:00 or tab slept, detect new day transition
     function isNewDaySinceLastSchedule(now, sched) {
       return !sameDayIST(now, sched.prev.time) && !sameDayIST(now, sched.next.time);
     }
 
-    // morning detection: before first slot of *today*
     function isBeforeFirstSlotToday(now) {
       const today = ymd(now);
-      const firstSlotTime = parseSlotOn(today, SLOTS[0]); // 10:00 AM today
+      const firstSlotTime = parseSlotOn(today, SLOTS[0]);
       return now < firstSlotTime;
-    }
-
-    function applyDayEndedUI() {
-      // stop any spin, KEEP last shown digits
-      stopAllReelsImmediately();
-      drawDateEl.textContent = "--";
-      drawTimeEl.textContent = "--";
-      drawTimeLeftEl.textContent = "--";
-      countdownEl.textContent = "DAY ENDED";
-      refreshBannersFromDrawText(schedule);
     }
 
     function loop() {
       const now = nowIST();
 
-      // 0) MIDNIGHT RESET (IST): wipe to dashes and rebuild schedule for the new day
+      // 0) TRUE reset only at midnight or when detecting new-day rollover
       if (isMidnightIST(now) || isNewDaySinceLastSchedule(now, schedule)) {
         stopAllReelsImmediately();
-        setAllToDashes();
-        setupSchedule();
-        // after midnight we can show next draw (first slot) countdown
+        setAllToDashes();         // wipe digits ONLY at midnight
+        setupSchedule();          // rebuild schedule for the new day
       }
 
-      // recompute "is the next slot today or tomorrow"
-      const dayEnded = !sameDayIST(schedule.next.time, now);
+      // recompute state
+      const dayEnded = !sameDayIST(schedule.next.time, now); // next slot is tomorrow
+      const prevIsToday = sameDayIST(schedule.prev.time, now);
 
-      // 1) NIGHT: after last draw (next slot is tomorrow) → KEEP last result, just show "DAY ENDED"
+      // 1) AFTER LAST DRAW (evening): DO NOT clear — hold last official result and labels
       if (dayEnded) {
-        applyDayEndedUI();
-        return;
+        stopAllReelsImmediately();
+
+        if (prevIsToday && prevOfficial) setAllTo(prevOfficial); // show last official
+        // keep last draw labels
+        drawDateEl.textContent = fmtDateHuman(schedule.prev.time);
+        drawTimeEl.textContent = schedule.prev.label;
+        drawTimeLeftEl.textContent = schedule.prev.label;
+
+        countdownEl.textContent = "Resets at 12:00 AM";
+        refreshBannersFromDrawText({ prev: schedule.prev, next: schedule.next });
+        return; // wait for midnight handler to wipe
       }
 
-      // 2) MORNING BEFORE FIRST DRAW → fresh board with dashes + countdown to 10:00 AM
+      // 2) MORNING BEFORE FIRST DRAW → dashes + countdown to first slot
       if (isBeforeFirstSlotToday(now)) {
         stopAllReelsImmediately();
         setAllToDashes();
@@ -780,11 +767,10 @@
         return;
       }
 
-      // 3) NORMAL DAILY FLOW (your original logic)
+      // 3) NORMAL DAILY FLOW
       const spinStart = new Date(schedule.next.time.getTime() - SPIN_WINDOW_MS);
       const inWaiting = now < spinStart;
       const inSpin = now >= spinStart && now < schedule.next.time;
-      const prevIsToday = sameDayIST(schedule.prev.time, now);
 
       if (inWaiting) {
         countdownEl.textContent = `Next Draw: ${msToHMS(schedule.next.time - now)}`;
@@ -818,18 +804,14 @@
         } else if (nextOfficial) {
           setAllTo(nextOfficial);
         } else {
-          // no nextOfficial yet → keep prev or dashes
-          if (prevIsToday && prevOfficial) {
-            setAllTo(prevOfficial);
-          } else {
-            setAllToDashes();
-          }
+          if (prevIsToday && prevOfficial) setAllTo(prevOfficial);
+          else setAllToDashes();
         }
 
         drawDateEl.textContent = fmtDateHuman(schedule.next.time);
         refreshBannersFromDrawText(schedule);
 
-        // after 2 min post result, roll to the next schedule
+        // After 2 minutes post result, advance schedule (may roll to tomorrow)
         if (now - schedule.next.time > 120000) {
           setupSchedule();
         }
@@ -863,6 +845,7 @@
       });
     });
   </script>
+
 </body>
 
 </html>
