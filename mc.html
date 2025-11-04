@@ -40,7 +40,6 @@
       position:absolute;width:100%;text-align:center;z-index:3;
       font-weight:900;font-family:'Arial Black',sans-serif;
       color:#fff;
-      /* crisp white fill with black outline for thickness */
       -webkit-text-stroke:1px #000;
       text-shadow:
         -1px -1px 0 #000, 1px -1px 0 #000,
@@ -49,18 +48,9 @@
     }
 
     /* Individual placements and sizes */
-    #time-text{
-      top:18%;
-      font-size:2.4rem; letter-spacing:4px !important;
-    }
-    #date-text{
-      top:25%;
-      font-size:1.8rem; letter-spacing:3px;
-    }
-    #day-text{
-      top:31%;
-      font-size:1.6rem; letter-spacing:3px !important;
-    }
+    #time-text{ top:18%; font-size:2.4rem; letter-spacing:4px !important; }
+    #date-text{ top:25%; font-size:1.8rem; letter-spacing:3px; }
+    #day-text{  top:31%; font-size:1.6rem; letter-spacing:3px !important; }
 
     /* Digits */
     .digit{
@@ -68,12 +58,11 @@
       transform:translate(-50%,-50%);
       font-size:4rem;z-index:4;
       font-family:'Arial Black',sans-serif;
-      color:#000; /* your original color */
-      -webkit-text-stroke:0; /* keep digits filled black with soft rim */
+      color:#000; -webkit-text-stroke:0;
       user-select:none;
     }
 
-    /* Slot positions — keep as provided */
+    /* Slot positions */
     #digit-1{left:27.5%}
     #digit-2{left:38%}
     #digit-3{left:49%}
@@ -116,7 +105,7 @@
     .sidebar a:hover{background:#ddd}
     .sidebar .close-btn{position:absolute;top:10px;right:15px;font-size:24px;cursor:pointer;color:#333}
 
-    /* Responsive tweaks (kept from your code, with tiny refinements) */
+    /* Responsive tweaks */
     @media (max-width:768px){
       .digit{font-size:3.5rem !important}
       #date-text{top:28%;font-size:1.8rem;margin-left:-1%}
@@ -168,12 +157,12 @@
       <div class="overlay" id="date-text"></div>
       <div class="overlay" id="day-text"></div>
 
-      <!-- 5 Digit Overlays -->
-      <div class="digit" id="digit-1">0</div>
-      <div class="digit" id="digit-2">0</div>
-      <div class="digit" id="digit-3">0</div>
-      <div class="digit" id="digit-4">0</div>
-      <div class="digit" id="digit-5">0</div>
+      <!-- 5 Digit Overlays (start as hyphens) -->
+      <div class="digit" id="digit-1">-</div>
+      <div class="digit" id="digit-2">-</div>
+      <div class="digit" id="digit-3">-</div>
+      <div class="digit" id="digit-4">-</div>
+      <div class="digit" id="digit-5">-</div>
     </div>
 
     <button onclick="downloadImage()">Download</button>
@@ -207,6 +196,34 @@
     dateEl.textContent = displayDate;
     dayEl.textContent  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
 
+    // ====== DIGIT RENDERING (with "no data" hyphens) ======
+    const NO_DATA_FILL = '-----';
+
+    function renderHyphens(){
+      for (let i = 0; i < 5; i++) {
+        document.getElementById(`digit-${i+1}`).textContent = NO_DATA_FILL[i];
+      }
+    }
+
+    function setDigits(raw){
+      // null/undefined/empty → hyphens
+      if (raw == null || raw === '') { renderHyphens(); return; }
+
+      // Normalize: accept "12345" or ["1","2","3","4","5"]
+      let str = Array.isArray(raw) ? raw.join('') : String(raw);
+
+      // Keep digits only
+      str = str.replace(/\D/g,'');
+      if (!str) { renderHyphens(); return; }
+
+      // Pad/truncate to exactly 5 digits (pad with zeros by design)
+      str = (str + '00000').slice(0,5);
+
+      for (let i = 0; i < 5; i++) {
+        document.getElementById(`digit-${i+1}`).textContent = str[i];
+      }
+    }
+
     // Helper: parse "01:00 PM" -> Date for today
     function getSlotDateTime(slot){
       const [time, period] = slot.split(' ');
@@ -222,13 +239,6 @@
       const slotTime = getSlotDateTime(timeSlots[i]);
       const releaseTime = new Date(slotTime.getTime() - 60 * 60 * 1000);
       if (now >= releaseTime) { selectedSlotIndex = i; break; }
-    }
-
-    function setDigits(value='00000'){
-      for (let i=0;i<5;i++){
-        const el = document.getElementById(`digit-${i+1}`);
-        el.textContent = value[i] ?? '0';
-      }
     }
 
     async function attachListenerForSlot(slot){
@@ -248,11 +258,10 @@
               const data = snapshot.val();
               console.log('[MC] Live update:', data);
               if (data && data.machine){
-                // accept both "12345" string or ["1","2","3","4","5"]
-                const str = Array.isArray(data.machine) ? data.machine.join('') : String(data.machine);
-                setDigits((str + '00000').slice(0,5));
+                const value = Array.isArray(data.machine) ? data.machine.join('') : String(data.machine);
+                setDigits(value);
               } else {
-                setDigits('00000');
+                setDigits(null); // <<< show hyphens when machine missing
               }
             });
             return true;
@@ -271,21 +280,22 @@
       timeEl.textContent = `D-${slot}`;
       attachListenerForSlot(slot).then(found=>{
         if (!found){
-          setDigits('00000');
+          setDigits(null); // <<< hyphens when not found yet
           console.warn('[MC] No data for selected slot yet. Waiting for Firebase updates…');
         }
       }).catch(err=>{
         console.error('[MC] Listener error:', err);
-        setDigits('00000');
+        setDigits(null); // <<< hyphens on error
       });
     } else {
       timeEl.textContent = 'No MC Yet';
-      setDigits('00000');
+      setDigits(null); // <<< hyphens when no slot chosen
     }
 
     // Download image
     window.downloadImage = async function(){
       const container = document.getElementById('image-container');
+      // Ensure fonts/images are ready if you later add webfonts
       const canvas = await html2canvas(container);
       const link = document.createElement('a');
       link.download = 'mc-number.png';
