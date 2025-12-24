@@ -1,131 +1,341 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MC Image</title>
   <style>
     /* Base */
-    *{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%}
-    body{
-      margin:0;text-align:center;color:#222;overflow-x:hidden;
-      font-family: Arial,'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
-      background:linear-gradient(135deg,#7bc4e4,#ffffff);
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
     }
 
-    .container{margin-top:0}
+    html,
+    body {
+      height: 100%
+    }
 
-    .heading{
-      font-size:2.5rem;font-weight:700;font-family:'Poppins','Segoe UI',sans-serif;
-      color:#222;margin:24px auto;text-align:center;text-transform:uppercase;letter-spacing:1px;
-      text-shadow:1px 1px 3px rgba(0,0,0,.2),2px 2px 5px rgba(0,0,0,.05);
-      background:linear-gradient(90deg,#ff8a00,#e52e71);
-      -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-      padding:10px 0;border-bottom:2px solid rgba(0,0,0,.1);
-      width:min(90vw,900px);
+    body {
+      margin: 0;
+      text-align: center;
+      color: #222;
+      overflow-x: hidden;
+      font-family: Arial, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #7bc4e4, #ffffff);
+    }
+
+    .container {
+      margin-top: 0
+    }
+
+    .heading {
+      font-size: 2.5rem;
+      font-weight: 700;
+      font-family: 'Poppins', 'Segoe UI', sans-serif;
+      color: #222;
+      margin: 24px auto;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 3px rgba(0, 0, 0, .2), 2px 2px 5px rgba(0, 0, 0, .05);
+      background: linear-gradient(90deg, #ff8a00, #e52e71);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      padding: 10px 0;
+      border-bottom: 2px solid rgba(0, 0, 0, .1);
+      width: min(90vw, 900px);
     }
 
     /* Image area */
-    #image-container{
-      position:relative;width:90vw;max-width:700px;margin:0 auto;
+    #image-container {
+      position: relative;
+      width: 90vw;
+      max-width: 700px;
+      margin: 0 auto;
     }
-    #template-img{
-      width:100%;height:auto;display:block;position:relative;z-index:1;
-      user-select:none;-webkit-user-drag:none;
+
+    #template-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      position: relative;
+      z-index: 1;
+      user-select: none;
+      -webkit-user-drag: none;
     }
 
     /* Overlays (time/date/day) — thicker without increasing size */
-    .overlay{
-      position:absolute;width:100%;text-align:center;z-index:3;
-      font-weight:900;font-family:'Arial Black',sans-serif;
-      color:#fff;
-      -webkit-text-stroke:1px #000;
+    .overlay {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      z-index: 3;
+      font-weight: 900;
+      font-family: 'Arial Black', sans-serif;
+      color: #fff;
+      -webkit-text-stroke: 1px #000;
       text-shadow:
         -1px -1px 0 #000, 1px -1px 0 #000,
-        -1px  1px 0 #000, 1px  1px 0 #000,
-        0 2px 6px rgba(0,0,0,.55);
+        -1px 1px 0 #000, 1px 1px 0 #000,
+        0 2px 6px rgba(0, 0, 0, .55);
     }
 
     /* Individual placements and sizes */
-    #time-text{ top:18%; font-size:2.4rem; letter-spacing:4px !important; }
-    #date-text{ top:25%; font-size:1.8rem; letter-spacing:3px; }
-    #day-text{  top:31%; font-size:1.6rem; letter-spacing:3px !important; }
+    #time-text {
+      top: 18%;
+      font-size: 2.4rem;
+      letter-spacing: 4px !important;
+    }
+
+    #date-text {
+      top: 25%;
+      font-size: 1.8rem;
+      letter-spacing: 3px;
+    }
+
+    #day-text {
+      top: 31%;
+      font-size: 1.6rem;
+      letter-spacing: 3px !important;
+    }
 
     /* Digits */
-    .digit{
-      position:absolute;top:64%;
-      transform:translate(-50%,-50%);
-      font-size:4rem;z-index:4;
-      font-family:'Arial Black',sans-serif;
-      color:#000; -webkit-text-stroke:0;
-      user-select:none;
+    .digit {
+      position: absolute;
+      top: 64%;
+      transform: translate(-50%, -50%);
+      font-size: 4rem;
+      z-index: 4;
+
+      font-family: 'Arial Black', 'Impact', 'Poppins', sans-serif;
+      font-weight: 900;
+      color: #000;
+
+      -webkit-text-stroke: 1px #000;
+      text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+
+      user-select: none;
     }
+
 
     /* Slot positions */
-    #digit-1{left:27.5%}
-    #digit-2{left:38%}
-    #digit-3{left:49%}
-    #digit-4{left:59.7%}
-    #digit-5{left:70%}
+    #digit-1 {
+      left: 27.5%
+    }
+
+    #digit-2 {
+      left: 38%
+    }
+
+    #digit-3 {
+      left: 49%
+    }
+
+    #digit-4 {
+      left: 59.7%
+    }
+
+    #digit-5 {
+      left: 70%
+    }
 
     /* Button */
-    button{
-      margin-top:30px;padding:12px 24px;font-size:1.2rem;border:none;
-      background:#00cfff;color:#fff;border-radius:8px;cursor:pointer
+    button {
+      margin-top: 30px;
+      padding: 12px 24px;
+      font-size: 1.2rem;
+      border: none;
+      background: #00cfff;
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer
     }
-    button:hover{background:#00a4cc}
+
+    button:hover {
+      background: #00a4cc
+    }
 
     /* Ticker */
-    .ticker-container{
-      position:fixed;bottom:0;width:100%;background:#222;color:#fff;height:40px;
-      display:flex;align-items:center;z-index:10;
+    .ticker-container {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #222;
+      color: #fff;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      z-index: 10;
     }
-    .ticker-text{
-      display:inline-block;white-space:nowrap;padding-left:100%;
-      animation:ticker 15s linear infinite;font-size:18px;
+
+    .ticker-text {
+      display: inline-block;
+      white-space: nowrap;
+      padding-left: 100%;
+      animation: ticker 15s linear infinite;
+      font-size: 18px;
     }
-    .ticker-text a{color:#00f0ff;text-decoration:none;font-weight:bold}
-    @keyframes ticker{0%{transform:translateX(0%)}100%{transform:translateX(-100%)}}
+
+    .ticker-text a {
+      color: #00f0ff;
+      text-decoration: none;
+      font-weight: bold
+    }
+
+    @keyframes ticker {
+      0% {
+        transform: translateX(0%)
+      }
+
+      100% {
+        transform: translateX(-100%)
+      }
+    }
 
     /* Sidebar */
-    .menu-icon{
-      position:absolute;top:20px;left:20px;width:30px;height:25px;cursor:pointer;
-      display:flex;flex-direction:column;justify-content:space-between;z-index:1100;
+    .menu-icon {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 30px;
+      height: 25px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      z-index: 1100;
     }
-    .menu-icon span{height:4px;background:#333;border-radius:2px}
 
-    .sidebar{
-      position:fixed;top:0;left:-250px;width:250px;height:100%;
-      background:linear-gradient(135deg,#f0f8ff,#e6e6fa);
-      box-shadow:4px 0 12px rgba(0,0,0,.1);padding:60px 20px;transition:left .3s ease;z-index:1000;
+    .menu-icon span {
+      height: 4px;
+      background: #333;
+      border-radius: 2px
     }
-    .sidebar.active{left:0}
-    .sidebar a{display:block;padding:12px;color:#333;text-decoration:none;margin-bottom:10px;font-weight:bold;transition:background .2s}
-    .sidebar a:hover{background:#ddd}
-    .sidebar .close-btn{position:absolute;top:10px;right:15px;font-size:24px;cursor:pointer;color:#333}
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -250px;
+      width: 250px;
+      height: 100%;
+      background: linear-gradient(135deg, #f0f8ff, #e6e6fa);
+      box-shadow: 4px 0 12px rgba(0, 0, 0, .1);
+      padding: 60px 20px;
+      transition: left .3s ease;
+      z-index: 1000;
+    }
+
+    .sidebar.active {
+      left: 0
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 12px;
+      color: #333;
+      text-decoration: none;
+      margin-bottom: 10px;
+      font-weight: bold;
+      transition: background .2s
+    }
+
+    .sidebar a:hover {
+      background: #ddd
+    }
+
+    .sidebar .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 24px;
+      cursor: pointer;
+      color: #333
+    }
 
     /* Responsive tweaks */
-    @media (max-width:768px){
-      .digit{font-size:3.5rem !important}
-      #date-text{top:28%;font-size:1.8rem;margin-left:-1%}
-      #time-text{top:19%;font-size:2rem;margin-left:-2%}
-      #day-text{top:36%;font-size:1.4rem !important}
-      .container{margin-top:10%}
+    @media (max-width:768px) {
+      .digit {
+        font-size: 3.5rem !important
+      }
+
+      #date-text {
+        top: 28%;
+        font-size: 1.8rem;
+        margin-left: -1%
+      }
+
+      #time-text {
+        top: 19%;
+        font-size: 2rem;
+        margin-left: -2%
+      }
+
+      #day-text {
+        top: 36%;
+        font-size: 1.4rem !important
+      }
+
+      .container {
+        margin-top: 10%
+      }
     }
-    @media (max-width:468px){
-      .digit{font-size:2.5rem !important}
-      #date-text{top:28%;font-size:1.8rem !important}
-      #time-text{top:16%;font-size:2.4rem !important}
-      #day-text{top:36%;font-size:1.4rem !important}
-      .container{margin-top:15%}
+
+    @media (max-width:468px) {
+      .digit {
+        font-size: 2.5rem !important
+      }
+
+      #date-text {
+        top: 28%;
+        font-size: 1.8rem !important
+      }
+
+      #time-text {
+        top: 16%;
+        font-size: 2.4rem !important
+      }
+
+      #day-text {
+        top: 36%;
+        font-size: 1.4rem !important
+      }
+
+      .container {
+        margin-top: 15%
+      }
     }
-    @media (max-width:368px){
-      .digit{font-size:2rem !important}
-      #time-text{top:18%;font-size:1.6rem !important}
-      #date-text{top:28.5%;font-size:1.3rem !important}
-      #day-text{top:36.5%;font-size:1.2rem !important}
-      .container{margin-top:20%}
+
+    @media (max-width:368px) {
+      .digit {
+        font-size: 2rem !important
+      }
+
+      #time-text {
+        top: 18%;
+        font-size: 1.6rem !important
+      }
+
+      #date-text {
+        top: 28.5%;
+        font-size: 1.3rem !important
+      }
+
+      #day-text {
+        top: 36.5%;
+        font-size: 1.2rem !important
+      }
+
+      .container {
+        margin-top: 20%
+      }
     }
   </style>
 </head>
@@ -150,7 +360,7 @@
     <h2 class="heading">Dear MC - Machine Number</h2>
 
     <div id="image-container">
-      <img id="template-img" src="./images/final.png" alt="MC Template"/>
+      <img id="template-img" src="./images/final.png" alt="MC Template" />
 
       <!-- Overlays -->
       <div class="overlay" id="time-text"></div>
@@ -171,7 +381,8 @@
   <!-- Bottom ticker -->
   <div class="ticker-container">
     <div class="ticker-text">
-      🚨 Check out our latest updates at <a href="https://dearmc.com" target="_blank">https://dearmc.com</a> — Stay tuned for more news! 🚨
+      🚨 Check out our latest updates at <a href="https://dearmc.com" target="_blank">https://dearmc.com</a> — Stay
+      tuned for more news! 🚨
     </div>
   </div>
 
@@ -180,32 +391,32 @@
     import { db } from './firebase-init.js';
     import { ref, onValue, get, child } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js';
 
-    const timeSlots = ['10:00 AM','11:00 AM','12:00 PM','01:00 PM','05:00 PM','06:00 PM','07:00 PM','08:00 PM'];
+    const timeSlots = ['10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM'];
 
     const dateEl = document.getElementById('date-text');
     const timeEl = document.getElementById('time-text');
-    const dayEl  = document.getElementById('day-text');
+    const dayEl = document.getElementById('day-text');
 
     const now = new Date();
-    const pad = n => String(n).padStart(2,'0');
+    const pad = n => String(n).padStart(2, '0');
 
     // Display date (for user) and key (for DB)
-    const displayDate = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()}`;
-    const todayKey    = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+    const displayDate = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
+    const todayKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
     dateEl.textContent = displayDate;
-    dayEl.textContent  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
+    dayEl.textContent = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
 
     // ====== DIGIT RENDERING (with "no data" hyphens) ======
     const NO_DATA_FILL = '-----';
 
-    function renderHyphens(){
+    function renderHyphens() {
       for (let i = 0; i < 5; i++) {
-        document.getElementById(`digit-${i+1}`).textContent = NO_DATA_FILL[i];
+        document.getElementById(`digit-${i + 1}`).textContent = NO_DATA_FILL[i];
       }
     }
 
-    function setDigits(raw){
+    function setDigits(raw) {
       // null/undefined/empty → hyphens
       if (raw == null || raw === '') { renderHyphens(); return; }
 
@@ -213,19 +424,19 @@
       let str = Array.isArray(raw) ? raw.join('') : String(raw);
 
       // Keep digits only
-      str = str.replace(/\D/g,'');
+      str = str.replace(/\D/g, '');
       if (!str) { renderHyphens(); return; }
 
       // Pad/truncate to exactly 5 digits (pad with zeros by design)
-      str = (str + '00000').slice(0,5);
+      str = (str + '00000').slice(0, 5);
 
       for (let i = 0; i < 5; i++) {
-        document.getElementById(`digit-${i+1}`).textContent = str[i];
+        document.getElementById(`digit-${i + 1}`).textContent = str[i];
       }
     }
 
     // Helper: parse "01:00 PM" -> Date for today
-    function getSlotDateTime(slot){
+    function getSlotDateTime(slot) {
       const [time, period] = slot.split(' ');
       let [hour, minute] = time.split(':').map(Number);
       if (period === 'PM' && hour !== 12) hour += 12;
@@ -241,23 +452,23 @@
       if (now >= releaseTime) { selectedSlotIndex = i; break; }
     }
 
-    async function attachListenerForSlot(slot){
+    async function attachListenerForSlot(slot) {
       // Try both "01:00 PM" and "1:00 PM"
-      const variants = [slot, slot.replace(/^0/,'')];
+      const variants = [slot, slot.replace(/^0/, '')];
       const dbRoot = ref(db);
 
-      for (const key of variants){
+      for (const key of variants) {
         const path = `lottery/${todayKey}/${key}`;
         console.log('[MC] Trying path:', path);
-        try{
+        try {
           const snap = await get(child(dbRoot, path));
-          if (snap.exists()){
+          if (snap.exists()) {
             console.log('[MC] Found data node, attaching live listener:', path);
             const liveRef = ref(db, path);
-            onValue(liveRef, (snapshot)=>{
+            onValue(liveRef, (snapshot) => {
               const data = snapshot.val();
               console.log('[MC] Live update:', data);
-              if (data && data.machine){
+              if (data && data.machine) {
                 const value = Array.isArray(data.machine) ? data.machine.join('') : String(data.machine);
                 setDigits(value);
               } else {
@@ -268,22 +479,22 @@
           } else {
             console.warn('[MC] No data at:', path);
           }
-        }catch(err){
+        } catch (err) {
           console.error('[MC] Error reading path:', path, err);
         }
       }
       return false;
     }
 
-    if (selectedSlotIndex >= 0){
+    if (selectedSlotIndex >= 0) {
       const slot = timeSlots[selectedSlotIndex];
       timeEl.textContent = `D-${slot}`;
-      attachListenerForSlot(slot).then(found=>{
-        if (!found){
+      attachListenerForSlot(slot).then(found => {
+        if (!found) {
           setDigits(null); // <<< hyphens when not found yet
           console.warn('[MC] No data for selected slot yet. Waiting for Firebase updates…');
         }
-      }).catch(err=>{
+      }).catch(err => {
         console.error('[MC] Listener error:', err);
         setDigits(null); // <<< hyphens on error
       });
@@ -293,7 +504,7 @@
     }
 
     // Download image
-    window.downloadImage = async function(){
+    window.downloadImage = async function () {
       const container = document.getElementById('image-container');
       // Ensure fonts/images are ready if you later add webfonts
       const canvas = await html2canvas(container);
@@ -307,4 +518,5 @@
   <!-- html2canvas for export -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </body>
+
 </html>
