@@ -108,19 +108,19 @@
       position: absolute;
       top: 64%;
       transform: translate(-50%, -50%);
-      font-size: 4rem;
+      font-size: 3rem;
       z-index: 4;
 
       font-family: 'Arial Black', 'Impact', 'Poppins', sans-serif;
-      font-weight: 900;
-      color: #000;
+      font-weight: 600;
+      color: #303030;
 
-      -webkit-text-stroke: 1px #000;
+      -webkit-text-stroke: 0px #303030;
       text-shadow:
-        -1px -1px 0 #000,
-        1px -1px 0 #000,
-        -1px 1px 0 #000,
-        1px 1px 0 #000;
+        -1px -1px 0 #303030,
+        1px -1px 0 #303030,
+        -1px 1px 0 #303030,
+        1px 1px 0 #303030;
 
       user-select: none;
     }
@@ -263,7 +263,8 @@
     /* Responsive tweaks */
     @media (max-width:768px) {
       .digit {
-        font-size: 3.5rem !important
+        font-size: 3.5rem !important;
+        font-weight: 0 !important;
       }
 
       #date-text {
@@ -290,7 +291,8 @@
 
     @media (max-width:468px) {
       .digit {
-        font-size: 2.5rem !important
+        font-size: 2.5rem !important;
+        font-weight: 0 !important;
       }
 
       #date-text {
